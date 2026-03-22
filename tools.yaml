@@ -1,27 +1,32 @@
-# tools.yaml
-tools:
-  - name: check_retention_history
-    description: "Lookup historical decisions and outcomes from the Spanner Context Graph."
-    parameters:
-      type: object
-      properties:
-        customer_id:
-          type: string
-          description: "The unique ID of the customer (e.g., CUST-001)"
-      required:
-        - customer_id
-    # The GQL query is now governed and managed here, not in the app code
-    spanner:
-      project_id: "xxxx"
-      instance_id: "graph"
-      database_id: "supportgraph"
-      query: >
-        GRAPH SupportContextGraph
-        MATCH (c:Customers {customer_id: @customer_id})<-[:AboutCustomer]-(d:Decisions)
-        MATCH (d)-[:ResultedIn]->(o:Outcomes)
-        RETURN 
-          d.timestamp AS Date,
-          d.amount AS Past_Amount,
-          d.reasoning_text AS Past_Reasoning,
-          o.result AS Past_Outcome
-        ORDER BY d.timestamp DESC
+# tools.yaml (Managed by Toolbox Server)
+toolsets:
+  - name: retention_management
+    tools:
+      - name: check_retention_history
+        description: "Traverses the Context Graph to find a customer's historical decisions, AI reasoning, and final outcomes."
+        parameters:
+          type: object
+          properties:
+            customer_id:
+              type: string
+              description: "The unique ID of the customer, e.g., 'CUST-001'."
+          required:
+            - customer_id
+        
+        spanner:
+          project_id: "xxxx"
+          instance_id: "graph"
+          database_id: "supportgraph"
+          # Aligned with your .sql MATCH patterns and RETURN aliases
+          query: >
+            GRAPH SupportContextGraph
+            MATCH (c:Customers {customer_id: @customer_id})<-[:AboutCustomer]-(d:Decisions)
+            MATCH (d)-[:ResultedIn]->(o:Outcomes)
+            RETURN 
+              d.timestamp AS Date,
+              d.type AS Action_Taken,
+              d.amount AS Discount_Amount,
+              d.reasoning_text AS AI_Reasoning,
+              o.result AS Final_Result,
+              o.revenue_impact AS MRR_Impact
+            ORDER BY d.timestamp DESC
