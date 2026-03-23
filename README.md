@@ -1,4 +1,5 @@
 **Context Graph on Spanner (MCP Edition)**
+
 Modern AI agents often perform unreliably because they lack "Institutional Memory"—the ability to recollect which organizational decisions led to success and which led to costly mistakes.
 
 This repository demonstrates the professional Agentic Stack on Google Cloud, using the Model Context Protocol (MCP) to bridge Spanner Graph with the Google ADK. This architecture allows for a decoupled, secure, and globally consistent "System of Intelligence".
