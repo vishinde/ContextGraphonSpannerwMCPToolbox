@@ -1,32 +1,47 @@
 # tools.yaml (Managed by Toolbox Server)
+sources:
+  spanner-graph-db:
+    kind: spanner
+    project: "bq-project-402513"
+    instance: "graph"
+    database: "supportgraph"
+
+tools:
+  check_retention_history:
+    kind: spanner-sql
+    source: spanner-graph-db
+    description: "Queries the Spanner Context Graph for customer decision history."
+    statement: | 
+      GRAPH SupportContextGraph
+      MATCH (c:Customers {customer_id: @customer_id})<-[:AboutCustomer]-(d:Decisions)
+      MATCH (d)-[:ResultedIn]->(o:Outcomes)
+      RETURN 
+        d.timestamp AS Date,
+        d.type AS Action_Taken,
+        d.amount AS Discount_Amount,
+        d.reasoning_text AS AI_Reasoning,
+        o.result AS Final_Result
+      ORDER BY d.timestamp DESC
+      LIMIT 5
+    parameters:
+      - name: customer_id
+        type: string
+        description: "The unique ID of the customer (e.g., 'CUST-001')"
+  get_policy_details:
+    kind: spanner-sql
+    source: spanner-graph-db
+    description: "Retrieves the active rule definition and status for a specific policy ID."
+    statement: |
+      SELECT name, rule_definition, is_active 
+      FROM Policies 
+      WHERE policy_id = @policy_id
+    parameters:
+      - name: policy_id
+        type: string
+        description: "The ID of the policy to look up, e.g., 'POL-99'."
+
+# Group it under 'default' which the server is already initializing
 toolsets:
-  - name: retention_management
-    tools:
-      - name: check_retention_history
-        description: "Traverses the Context Graph to find a customer's historical decisions, AI reasoning, and final outcomes."
-        parameters:
-          type: object
-          properties:
-            customer_id:
-              type: string
-              description: "The unique ID of the customer, e.g., 'CUST-001'."
-          required:
-            - customer_id
-        
-        spanner:
-          project_id: "xxxx"
-          instance_id: "graph"
-          database_id: "supportgraph"
-          # Aligned with your .sql MATCH patterns and RETURN aliases
-          query: >
-            GRAPH SupportContextGraph
-            MATCH (c:Customers {customer_id: @customer_id})<-[:AboutCustomer]-(d:Decisions)
-            MATCH (d)-[:ResultedIn]->(o:Outcomes)
-            RETURN 
-              d.timestamp AS Date,
-              d.type AS Action_Taken,
-              d.amount AS Discount_Amount,
-              d.reasoning_text AS AI_Reasoning,
-              o.result AS Final_Result,
-              o.revenue_impact AS MRR_Impact
-            ORDER BY d.timestamp DESC
+  my_graph_toolset:
+    - check_retention_history
+    - get_policy_details
